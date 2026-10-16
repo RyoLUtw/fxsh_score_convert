@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>班級成績排序工具</title>
+<style>
+:root{font-family:system-ui,-apple-system,"Noto Sans TC",sans-serif;color:#182536;background:#f4f7fb}*{box-sizing:border-box}body{margin:0;padding:26px}main{max-width:1150px;margin:auto}h1{font-size:1.7rem;margin:0 0 8px}p{color:#586779;line-height:1.55}.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.panel{background:white;border:1px solid #dce4ef;border-radius:14px;padding:19px;box-shadow:0 4px 18px #192a4309}.panel h2{font-size:1.08rem;margin:0 0 12px}textarea{width:100%;border:1px solid #bac8d9;border-radius:9px;padding:12px;font:14px/1.5 ui-monospace,monospace;resize:vertical;min-height:300px;background:#fcfdff}input[type=file]{width:100%;padding:12px;border:1px dashed #91a6c0;border-radius:8px}button{border:0;border-radius:9px;padding:11px 16px;background:#1b5fba;color:white;font-weight:650;cursor:pointer}button.secondary{background:#e7eef8;color:#254d80}button:disabled{opacity:.5;cursor:default}.actions{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.small{font-size:13px;color:#607186}.status{margin-top:10px;color:#294a68}.stats{display:flex;flex-wrap:wrap;gap:9px;margin:12px 0}.stat{background:#eaf1fb;border-radius:8px;padding:8px 12px;font-size:14px}.warn{background:#fff4df;border:1px solid #f5cd7a;padding:12px;border-radius:9px;color:#6b4a10}.issue{padding:10px 0;border-bottom:1px solid #e6e9ef;font-size:14px;line-height:1.5}.issue button{padding:6px 9px;font-size:12px;margin-left:6px}.issue:last-child{border:0}.issue strong{color:#9c5429}.opt{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:14px}.wide{grid-column:1 / -1}#output{min-height:290px}#issues{max-height:240px;overflow:auto}.filehint{word-break:break-all}.table-wrap{overflow:auto;max-height:460px;border:1px solid #dce4ef;border-radius:9px}table{width:100%;border-collapse:collapse;font-size:14px;white-space:nowrap}th,td{padding:9px 12px;text-align:left;border-bottom:1px solid #e6eaf1}th{background:#eef4fc;position:sticky;top:0;z-index:1}tbody tr:nth-child(even){background:#f8fafd}.preview-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px}.preview-head h2{margin:0}#previewPanel{margin-top:16px;padding-top:14px;border-top:1px solid #e6eaf1}#previewPanel .table-wrap{max-height:320px}.empty-note{padding:12px;color:#607186}@media(max-width:790px){.grid{grid-template-columns:1fr}.wide{grid-column:auto}body{padding:12px}}</style>
+</head>
+<body><main>
+<h1>班級成績排序工具</h1>
+<p>匯入成績 CSV，貼上成績系統的學生順序，即可輸出一行一筆的成績。比對優先使用「班級＋座號」，不依賴姓名字形。</p>
+<div class="grid">
+<section class="panel"><h2>1. 匯入成績 CSV</h2><input id="csvFile" type="file" accept=".csv,text/csv"><div id="fileStatus" class="status small">尚未匯入 CSV</div><p class="small">支援 UTF-8 (含 BOM) CSV，欄位格式：姓氏、名字、成績。類別碼可自動對應「115普勝」與「普一勝」。</p><div id="previewPanel"><div class="preview-head"><h2>CSV 解析預覽</h2><span class="small" id="previewInfo">上傳 CSV 後顯示完整解析結果</span></div><div class="table-wrap"><table id="previewTable"><thead><tr><th>CSV 列</th><th>原始班級</th><th>解析班級</th><th>座號</th><th>姓名</th><th>成績</th><th>作業狀態</th><th>電子郵件</th></tr></thead><tbody id="previewBody"><tr><td colspan="8" class="empty-note">尚未載入 CSV</td></tr></tbody></table></div><div id="previewWarnings" class="small" style="margin-top:9px"></div></div></section>
+<section class="panel"><h2>2. 貼上學生輸出順序</h2><textarea id="order" spellcheck="false" placeholder="普一勝　02　普一勝　02　李喬婕\n0\n缺弊\n普一勝　04　普一勝　04　高寗幃\n0\n缺弊"></textarea><div class="preview-head" style="margin-top:14px"><h2 style="margin:0">貼上順序解析預覽</h2><span class="small" id="orderPreviewInfo">尚未貼上學生資料</span></div><div class="table-wrap" style="max-height:320px"><table><thead><tr><th>序號</th><th>班級 1</th><th>座號 1</th><th>班級 2</th><th>座號 2</th><th>姓名</th></tr></thead><tbody id="orderPreviewBody"><tr><td colspan="6" class="empty-note">貼上資料後顯示解析結果</td></tr></tbody></table></div><div class="actions"><button id="run">產生成績</button><button class="secondary" id="clear">清除順序</button></div><div class="small">忽略系統中的「0」及「缺弊」狀態行；每個學生只取一次。保留原始貼上順序。</div></section>
+
+<section class="panel"><h2>3. 複製成績</h2><textarea id="output" readonly spellcheck="false" placeholder="處理完成後，這裡會顯示每行一個分數。"></textarea><div class="actions"><button id="copy" disabled>複製成績</button><button id="download" class="secondary" disabled>下載 TXT</button></div><div id="copyStatus" class="small"></div></section>
+<section class="panel"><h2>核對結果</h2><div id="stats" class="stats"></div><div id="issues" class="small">產生成績後顯示比對問題。</div></section>
+</div>
+<p class="small">所有資料都在此瀏覽器內處理，不會上傳到伺服器。請在確認警告與空白列後再貼回成績系統。</p>
+</main>
+<script>
+'use strict';
+const $=id=>document.getElementById(id);let records=[], sourceName='', overrides={};
+function parseCSV(s){s=s.replace(/^\uFEFF/,'');let rows=[],r=[],v='',quote=false;for(let i=0;i<s.length;i++){let c=s[i];if(quote){if(c==='"'&&s[i+1]==='"'){v+='"';i++}else if(c==='"')quote=false;else v+=c}else if(c==='"')quote=true;else if(c===','){r.push(v);v=''}else if(c==='\n'||c==='\r'){if(c==='\r'&&s[i+1]==='\n')i++;r.push(v);if(r.some(x=>x.trim()))rows.push(r);r=[];v=''}else v+=c}r.push(v);if(r.some(x=>x.trim()))rows.push(r);return rows}
+function cls(s){return String(s||'').normalize('NFKC').replace(/\s/g,'').replace(/^\d{2,4}(?=普)/,'').replace(/^普[一1]/,'普')}
+function seat(s){let m=String(s||'').normalize('NFKC').match(/\d{1,3}/);return m?String(+m[0]):''}
+function normalizeName(s){return String(s||'').normalize('NFKC').replace(/[\s\uE000-\uF8FF]/g,'')}
+function ingest(text,name){const rows=parseCSV(text);if(!rows.length)throw Error('CSV 是空的');let headers=rows.shift().map(x=>x.trim().replace(/^\uFEFF/,''));let col=k=>headers.indexOf(k),ci=col('姓氏'),ni=col('名字'),gi=col('成績'),si=col('作業狀態'),ei=col('電子郵件地址');if(ci<0||ni<0||gi<0)throw Error('找不到必要欄位：姓氏、名字、成績');
+let parsed=rows.map((r,index)=>{let m=(r[ni]||'').trim().match(/^\s*(\d{1,3})\s*(.*)$/);return {rawClass:String(r[ci]||'').trim(),class:cls(r[ci]),seat:m?seat(m[1]):'',name:m?m[2].trim():String(r[ni]||'').trim(),grade:String(r[gi]??'').trim(),status:si>=0?String(r[si]||'').trim():'',email:ei>=0?String(r[ei]||'').trim():'',row:index+2}});
+records=parsed.filter(r=>r.class&&r.seat);sourceName=name;overrides={};renderPreview(parsed);$('fileStatus').textContent=`已載入 ${name}：${records.length} 位學生`;run()}
+function renderPreview(parsed){let tbody=$('previewBody');tbody.replaceChildren();for(const r of parsed){let tr=document.createElement('tr');for(const value of [r.row,r.rawClass,r.class,r.seat?r.seat.padStart(2,'0'):'（無）',r.name,formatGrade(r.grade),r.status,r.email]){let td=document.createElement('td');td.textContent=value;tr.append(td)}tbody.append(tr)}$('previewInfo').textContent=`共 ${parsed.length} 筆，成功解析 ${records.length} 筆`;let skipped=parsed.filter(r=>!r.class||!r.seat);$('previewWarnings').textContent=skipped.length?`注意：${skipped.length} 筆缺少班級或座號，未納入成績比對（CSV 列：${skipped.map(r=>r.row).join('、')}）。`:'已顯示全部 CSV 資料；成績輸出只使用成功解析的記錄。'}
+function extract(s){let found=[];for(const [idx,line] of s.split(/\r?\n/).entries()){let l=line.trim();if(!l||/^(?:\d+(?:\.\d+)?|缺弊|缺考|作弊|缺交)$/.test(l))continue;
+// Primary expected line: class, seat, (repeated class, seat), Chinese name
+let matches=[...l.matchAll(/(普[一1]?[\p{Script=Han}])\s*([0-9０-９]{1,3})/gu)];
+if(matches.length){let last=matches[matches.length-1],tail=l.slice(last.index+last[0].length).trim();found.push({class:cls(matches[0][1]),seat:seat(matches[0][2]),name:tail.replace(/\s+/g,''),line:idx+1,raw:l});continue}
+// Alternate class forms in source output
+let a=l.match(/(?:115)?(普[\p{Script=Han}])\s*(\d{1,3})\s*(.*)/u);if(a)found.push({class:cls(a[1]),seat:seat(a[2]),name:a[3].trim(),line:idx+1,raw:l});
+}return found}
+function renderOrderPreview(targets){
+let body=$('orderPreviewBody');body.replaceChildren();
+for(const [index,t] of targets.entries()){let tr=document.createElement('tr');let matches=[...t.raw.matchAll(/(普[一1]?[\p{Script=Han}])\s*([0-9０-９]{1,3})/gu)];
+let cells=matches.length>=2?[index+1,matches[0][1],matches[0][2],matches[1][1],matches[1][2],t.name]:[index+1,t.class,t.seat,'','',t.name];
+for(let v of cells){let td=document.createElement('td');td.textContent=v;tr.append(td)}body.append(tr)}
+if(!targets.length){let tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=6;td.className='empty-note';td.textContent='尚未辨識到學生資料';tr.append(td);body.append(tr)}
+$('orderPreviewInfo').textContent=`成功辨識 ${targets.length} 位學生（5 欄原始資料＋序號）`;
+}
+function findNameCandidates(t){if(!normalizeName(t.name))return [];let exact=records.filter(r=>normalizeName(r.name)===normalizeName(t.name));return exact}
+function run(){let targets=extract($('order').value);renderOrderPreview(targets);let map=new Map();for(let r of records){let key=r.class+'|'+r.seat;if(!map.has(key))map.set(key,[]);map.get(key).push(r)}let issues=[],scores=[],exact=0,manual=0,missing=0;
+for(let i=0;i<targets.length;i++){let t=targets[i],key=t.class+'|'+t.seat,matches=map.get(key)||[],chosen=null,reason='';if(matches.length===1){chosen=matches[0];exact++;if(t.name&&normalizeName(t.name)!==normalizeName(chosen.name)){reason=`姓名不一致：來源「${chosen.name}」、貼上「${t.name}」（按班級座號配對）`}}else if(matches.length>1){reason='CSV 中班級與座號重複，無法唯一配對'}else{let candidates=findNameCandidates(t);reason='找不到對應的班級座號';if(candidates.length===1)reason+=`；同名學生可能是 ${candidates[0].class} ${candidates[0].seat.padStart(2,'0')} ${candidates[0].name}（成績 ${candidates[0].grade}）`}
+if(overrides[i]!=null){let r=records[overrides[i]];if(r){chosen=r;manual++}}if(!chosen)missing++;scores.push(chosen?formatGrade(chosen.grade):'');if(reason||!chosen)issues.push({i,t,reason,chosen,candidates:!matches.length?findNameCandidates(t):[]})}
+$('output').value=scores.join('\n');$('copy').disabled=!targets.length;$('download').disabled=!targets.length;$('stats').innerHTML=`<span class="stat">學生：${targets.length}</span><span class="stat">精確座號配對：${exact}</span><span class="stat">未配對：${missing}</span><span class="stat">待核對：${issues.length}</span>`;
+let area=$('issues');area.replaceChildren();if(!records.length){area.textContent='請先匯入 CSV。';return}if(!targets.length){area.textContent='請貼上學生順序。';return}if(!issues.length){area.textContent='所有學生均成功配對。';return}
+let intro=document.createElement('div');intro.className='warn';intro.textContent=`有 ${issues.length} 筆需要核對。未配對的分數保持空白，避免錯位。`;area.append(intro);
+for(let it of issues){let d=document.createElement('div');d.className='issue';let label=document.createElement('div');let title=document.createElement('strong');title.textContent=`第 ${it.i+1} 位：${it.t.class} ${it.t.seat.padStart(2,'0')} ${it.t.name}`;label.append(title);let reason=document.createElement('div');reason.textContent=it.reason||'已手動配對';d.append(label,reason);
+if(it.candidates.length===1){let candidate=it.candidates[0],j=records.indexOf(candidate),b=document.createElement('button');b.className='secondary';b.textContent=`使用姓名相符的 ${candidate.grade} 分`;b.onclick=()=>{overrides[it.i]=j;run()};d.append(b)}
+if(overrides[it.i]!=null){let b=document.createElement('button');b.className='secondary';b.textContent='取消手動配對';b.onclick=()=>{delete overrides[it.i];run()};d.append(b)}area.append(d)}$('copyStatus').textContent=missing?'注意：輸出中有空白列，請確認後再複製。':''}
+function formatGrade(s){let n=Number(s);return s!==''&&Number.isFinite(n)?String(n):s}
+$('csvFile').addEventListener('change',async e=>{let f=e.target.files?.[0];if(!f)return;try{let b=await f.arrayBuffer();let t=new TextDecoder('utf-8',{fatal:true}).decode(b);ingest(t,f.name)}catch(e){$('fileStatus').textContent='讀取失敗：'+e.message}});
+$('run').onclick=run;$('clear').onclick=()=>{$('order').value='';overrides={};run()};$('order').addEventListener('input',()=>{overrides={};run()});
+$('copy').onclick=async()=>{try{await navigator.clipboard.writeText($('output').value);$('copyStatus').textContent='已複製成績！'}catch(e){$('output').focus();$('output').select();$('copyStatus').textContent='請按 Ctrl+C 複製已選取的成績。'}};
+$('download').onclick=()=>{let blob=new Blob(['\uFEFF'+$('output').value],{type:'text/plain;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='排序成績.txt';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)};
+</script></body></html>
